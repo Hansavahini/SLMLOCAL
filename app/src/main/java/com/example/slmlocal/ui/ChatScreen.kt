@@ -8,9 +8,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -20,12 +25,24 @@ import androidx.compose.ui.unit.dp
 import com.example.slmlocal.ai.EngineState
 import com.example.slmlocal.ui.components.MessageBubble
 
+import com.example.slmlocal.rag.ingestion.IngestionState
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatScreen(viewModel: ChatViewModel) {
+fun ChatScreen(viewModel: ChatViewModel, ingestionViewModel: IngestionViewModel) {
     var inputText by remember { mutableStateOf("") }
     val messages by viewModel.messages.collectAsState()
     val engineState by viewModel.engineState.collectAsState()
+    val ingestionState by ingestionViewModel.ingestionState.collectAsState()
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = { uri ->
+            if (uri != null) {
+                ingestionViewModel.startIngestion(uri)
+            }
+        }
+    )
 
     Scaffold(
         topBar = {
@@ -57,7 +74,12 @@ fun ChatScreen(viewModel: ChatViewModel) {
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                     titleContentColor = MaterialTheme.colorScheme.onSurface
-                )
+                ),
+                actions = {
+                    IconButton(onClick = { launcher.launch(arrayOf("application/pdf")) }) {
+                        Icon(imageVector = Icons.Default.Add, contentDescription = "Import PDF")
+                    }
+                }
             )
         }
     ) { paddingValues ->
@@ -69,6 +91,53 @@ fun ChatScreen(viewModel: ChatViewModel) {
                 .background(MaterialTheme.colorScheme.background)
         ) {
             
+            if (ingestionState !is IngestionState.Idle) {
+                AlertDialog(
+                    onDismissRequest = { 
+                        if (ingestionState is IngestionState.Completed || ingestionState is IngestionState.Error) {
+                            ingestionViewModel.resetState()
+                        }
+                    },
+                    title = { Text("Knowledge Base Import") },
+                    text = {
+                        when (val state = ingestionState) {
+                            is IngestionState.Parsing -> {
+                                Column {
+                                    LinearProgressIndicator(progress = state.progress)
+                                    Spacer(Modifier.height(8.dp))
+                                    Text(state.currentActivity)
+                                }
+                            }
+                            is IngestionState.Completed -> {
+                                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                                    Text("Source Pages: ${state.pageCount}")
+                                    Text("Final Chunks: ${state.chunkCount}")
+                                    Text("Total Chars: ${state.totalCharacters}")
+                                    Text("Avg Chunk: ${state.averageChunkSize} chars")
+                                    Text("Min Chunk: ${state.minChunkSize} chars")
+                                    Text("Max Chunk: ${state.maxChunkSize} chars")
+                                    Text("Avg Overlap: ~${state.averageOverlap} chars")
+                                    Text("Chapters: ${state.detectedChapters}")
+                                    Spacer(Modifier.height(8.dp))
+                                    Text("Chapter Names:\n${state.chapterNames.joinToString()}")
+                                }
+                            }
+                            is IngestionState.Error -> {
+                                Text("Error: ${state.message}")
+                            }
+                            else -> {}
+                        }
+                    },
+                    confirmButton = {
+                        if (ingestionState is IngestionState.Completed || ingestionState is IngestionState.Error) {
+                            TextButton(onClick = { ingestionViewModel.resetState() }) {
+                                Text("Close")
+                            }
+                        }
+                    }
+                )
+            }
+
             if (engineState is EngineState.Error) {
                 Surface(
                     color = MaterialTheme.colorScheme.errorContainer,

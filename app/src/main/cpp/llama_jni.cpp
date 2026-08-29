@@ -142,27 +142,8 @@ Java_com_example_slmlocal_ai_LlamaJNI_generateTokens(
 
     const char* prompt_cstr = env->GetStringUTFChars(prompt, nullptr);
     
-    // 1. Format prompt
-    std::string formatted_prompt;
-    int alloc_len = strlen(prompt_cstr) * 2 + 256;
-    std::vector<char> buf(alloc_len);
-    
-    llama_chat_message msg;
-    msg.role = "user";
-    msg.content = prompt_cstr;
-    
-    // Try to get model's chat template
-    const char* tmpl = nullptr; // llama_model_chat_template requires knowing the metadata key, or we just pass nullptr to use default
-    int32_t res = llama_chat_apply_template(tmpl, &msg, 1, true, buf.data(), alloc_len);
-    if (res > alloc_len) {
-        buf.resize(res);
-        res = llama_chat_apply_template(tmpl, &msg, 1, true, buf.data(), res);
-    }
-    if (res >= 0) {
-        formatted_prompt = std::string(buf.data(), res);
-    } else {
-        formatted_prompt = std::string("<|user|>\n") + prompt_cstr + "<|end|>\n<|assistant|>\n";
-    }
+    // 1. Format prompt (Hardcoded for Gemma)
+    std::string formatted_prompt = std::string("<start_of_turn>user\n") + prompt_cstr + "<end_of_turn>\n<start_of_turn>model\n";
     
     env->ReleaseStringUTFChars(prompt, prompt_cstr);
     LOGI("Formatted prompt: %s", formatted_prompt.c_str());
@@ -235,7 +216,7 @@ Java_com_example_slmlocal_ai_LlamaJNI_generateTokens(
     LOGI("Sampler initialized.");
     
     int current_pos = n_tokens;
-    int max_gen_tokens = 16;
+    int max_gen_tokens = 512;
     int gen_count = 0;
     
     LOGI("Starting generation loop...");
@@ -270,6 +251,22 @@ Java_com_example_slmlocal_ai_LlamaJNI_generateTokens(
         LOGI("llama_token_to_piece() result: %d, buf size limit: %d", pres, (int)sizeof(piece_buf));
         if (pres > 0 && pres < sizeof(piece_buf)) {
             piece_buf[pres] = '\0';
+            std::string piece_str(piece_buf);
+            
+            // Sometimes the model doesn't mark End-Of-Turn correctly in its metadata, 
+            // so we manually check if it printed a known stop token as text.
+            if (piece_str.find("<|im_end|>") != std::string::npos || 
+                piece_str.find("</|im_end|>") != std::string::npos ||
+                piece_str.find("<|im_start|>") != std::string::npos ||
+                piece_str.find("</|im_start|>") != std::string::npos ||
+                piece_str.find("<end_of_turn>") != std::string::npos ||
+                piece_str.find("<start_of_turn>") != std::string::npos ||
+                piece_str.find("<|end|>") != std::string::npos ||
+                piece_str.find("</s>") != std::string::npos) {
+                LOGI("Found stop string in piece. Breaking.");
+                break;
+            }
+            
             LOGI("Emitting token to Kotlin: '%s'", piece_buf);
             jstring jstr = env->NewStringUTF(piece_buf);
             env->CallVoidMethod(callback, onTokenMethod, jstr);

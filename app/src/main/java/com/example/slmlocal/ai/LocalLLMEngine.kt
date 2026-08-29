@@ -8,15 +8,15 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.withContext
 import java.io.File
 
-class LocalLLMEngine {
+class LocalLLMEngine : LLMEngine {
 
     private var _state: EngineState = EngineState.Uninitialized
-    val state: EngineState
+    override val state: EngineState
         get() = _state
 
     private var contextPtr: Long = 0L
 
-    suspend fun initialize(config: LocalLLMConfig): EngineState = withContext(Dispatchers.IO) {
+    override suspend fun initialize(config: LLMConfig): EngineState = withContext(Dispatchers.IO) {
         _state = EngineState.Loading
 
         val modelFile = File(config.modelPath)
@@ -45,9 +45,9 @@ class LocalLLMEngine {
         return@withContext _state
     }
 
-    fun isReady(): Boolean = _state is EngineState.Ready
+    override fun isReady(): Boolean = _state is EngineState.Ready
 
-    fun generateStream(prompt: String): Flow<String> = kotlinx.coroutines.flow.callbackFlow {
+    override fun generateStream(prompt: String): Flow<String> = kotlinx.coroutines.flow.callbackFlow {
         if (_state !is EngineState.Ready) {
             close(IllegalStateException("Engine is not ready"))
             return@callbackFlow
@@ -85,13 +85,13 @@ class LocalLLMEngine {
         }
     }
 
-    fun cancel() {
+    override fun cancel() {
         if (LlamaJNI.isLoaded) {
             LlamaJNI.cancelGeneration()
         }
     }
 
-    fun release() {
+    override fun release() {
         cancel()
         if (contextPtr != 0L && LlamaJNI.isLoaded) {
             try {

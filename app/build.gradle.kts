@@ -22,7 +22,7 @@ android {
 
         externalNativeBuild {
             cmake {
-                abiFilters += "x86_64"
+                abiFilters += listOf("x86_64", "arm64-v8a", "armeabi-v7a")
                 cppFlags += "-std=c++17"
             }
         }
@@ -93,4 +93,7 @@ dependencies {
 
     // ONNX Runtime (for embeddings)
     implementation(libs.onnxruntime.android)
+
+    // PDFBox Android
+    implementation(libs.tomroush.pdfbox)
 }

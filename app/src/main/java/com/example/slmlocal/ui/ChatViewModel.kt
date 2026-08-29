@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.slmlocal.ai.EngineState
 import com.example.slmlocal.ai.LocalLLMConfig
+import com.example.slmlocal.ai.LLMEngine
 import com.example.slmlocal.ai.LocalLLMEngine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +16,7 @@ import com.example.slmlocal.ai.LlamaJNI
 
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val engine = LocalLLMEngine()
+    private val engine: LLMEngine = LocalLLMEngine()
 
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val messages: StateFlow<List<ChatMessage>> = _messages.asStateFlow()
@@ -32,7 +33,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         if (!modelDir.exists()) {
             modelDir.mkdirs()
         }
-        val modelPath = File(modelDir, "Phi-3-mini-4k-instruct-q4.gguf").absolutePath
+        val modelPath = File(modelDir, "gemma-3-270m-it-qat-q4_0-unquantized-q4_k_m.gguf").absolutePath
 
         val config = LocalLLMConfig(
             modelPath = modelPath,
