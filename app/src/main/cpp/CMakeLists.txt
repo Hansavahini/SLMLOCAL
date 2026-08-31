@@ -5,7 +5,7 @@
 cmake_minimum_required(VERSION 3.22.1)
 
 # Declares and names the project.
-project("slmlocal")
+project("gemma")
 
 # Add the llama.cpp subdirectory. We disable tests and executables.
 set(LLAMA_BUILD_TESTS OFF CACHE BOOL "Build llama tests" FORCE)
@@ -26,7 +26,7 @@ add_subdirectory(llama.cpp)
 # or SHARED, and provides the relative paths to its source code.
 add_library(
         # Sets the name of the library.
-        slmlocal_jni
+        gemma_jni
         # Sets the library as a shared library.
         SHARED
         # Provides a relative path to your source file(s).
@@ -34,13 +34,13 @@ add_library(
 
 # Specifies libraries CMake should link to your target library.
 target_link_libraries(
-        slmlocal_jni
+        gemma_jni
         llama
         android
         log)
 
 # Include paths for llama.cpp and ggml
-target_include_directories(slmlocal_jni PRIVATE
+target_include_directories(gemma_jni PRIVATE
         llama.cpp/include
         llama.cpp/ggml/include
 )

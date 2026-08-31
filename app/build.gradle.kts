@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.slmlocal"
+    namespace = "com.example.gemma"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.slmlocal"
+        applicationId = "com.example.gemma"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

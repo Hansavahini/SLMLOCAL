@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "SLMLOCAL"
+rootProject.name = "gemma"
 include(":app")
  

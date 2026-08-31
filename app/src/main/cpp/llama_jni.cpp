@@ -32,7 +32,7 @@ struct llama_instance {
 static bool g_backend_initialized = false;
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_example_slmlocal_ai_LlamaJNI_systemInfo(
+Java_com_example_gemma_ai_LlamaJNI_systemInfo(
         JNIEnv* env,
         jobject /* this */) {
     if (!g_backend_initialized) {
@@ -45,11 +45,12 @@ Java_com_example_slmlocal_ai_LlamaJNI_systemInfo(
 }
 
 extern "C" JNIEXPORT jlong JNICALL
-Java_com_example_slmlocal_ai_LlamaJNI_loadModel(
+Java_com_example_gemma_ai_LlamaJNI_loadModel(
         JNIEnv* env,
         jobject /* this */,
         jstring modelPathStr,
-        jint contextSize) {
+        jint contextSize,
+        jint threads) {
     
     if (!g_backend_initialized) {
         llama_backend_init();
@@ -73,9 +74,9 @@ Java_com_example_slmlocal_ai_LlamaJNI_loadModel(
     LOGI("Model loaded successfully. Initializing context...");
     
     llama_context_params ctx_params = llama_context_default_params();
-    ctx_params.n_ctx = contextSize; // Set safely to 4096 tokens
-    ctx_params.n_threads = 4;       // Conservative thread count for mobile
-    ctx_params.n_threads_batch = 4;
+    ctx_params.n_ctx = contextSize;
+    ctx_params.n_threads = threads;
+    ctx_params.n_threads_batch = threads;
     
     llama_context* ctx = llama_init_from_model(model, ctx_params);
     if (!ctx) {
@@ -103,7 +104,7 @@ Java_com_example_slmlocal_ai_LlamaJNI_loadModel(
 static std::atomic<bool> g_cancel_generation(false);
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_example_slmlocal_ai_LlamaJNI_cancelGeneration(
+Java_com_example_gemma_ai_LlamaJNI_cancelGeneration(
         JNIEnv* env,
         jobject /* this */) {
     g_cancel_generation = true;
@@ -126,7 +127,7 @@ static void my_llama_batch_clear(struct llama_batch & batch) {
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_example_slmlocal_ai_LlamaJNI_generateTokens(
+Java_com_example_gemma_ai_LlamaJNI_generateTokens(
         JNIEnv* env,
         jobject /* this */,
         jlong contextPtr,
