@@ -20,7 +20,7 @@ class DefaultRAGEngine(
         }
     }
 
-    override fun answerQuestionStream(question: String, documentId: String): Flow<String> = kotlinx.coroutines.flow.flow {
+    override fun answerQuestionStream(question: String, documentId: String, history: String): Flow<String> = kotlinx.coroutines.flow.flow {
         safeLog("retrieval_started documentId=$documentId")
         // Retrieve relevant context chunks
         val contextChunks = retriever.retrieveContext(question, documentId, maxChunks = 3)
@@ -60,7 +60,7 @@ class DefaultRAGEngine(
         val contextSnippet = contextText.replace("\n", " ").take(500)
         safeLog("context_built totalLen=${contextText.length}, chunkCount=${relevantChunks.size}, snippet=\"$contextSnippet...\"")
         
-        val prompt = "Answer the question based ONLY on the following context. If the answer cannot be found in the context, say so.\n\nContext:\n$contextText\n\nQuestion: $question\nAnswer:"
+        val prompt = "Answer the question based ONLY on the following context. If the answer cannot be found in the context, say so.\n\nContext:\n$contextText\n\nRecent Conversation History:\n$history\n\nQuestion: $question\nAnswer:"
         
         val promptSnippet = prompt.replace("\n", " ").take(1000)
         safeLog("rag_prompt_sent promptLen=${prompt.length}, context_starts_at_index=${prompt.indexOf("Context:\n") + 9}, context_ends_at_index=${prompt.indexOf("\n\nQuestion:")}, snippet=\"$promptSnippet...\"")
