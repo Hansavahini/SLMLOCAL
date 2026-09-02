@@ -77,6 +77,7 @@ Java_com_example_gemma_ai_LlamaJNI_loadModel(
     ctx_params.n_ctx = contextSize;
     ctx_params.n_threads = threads;
     ctx_params.n_threads_batch = threads;
+    ctx_params.n_batch = contextSize;
     
     llama_context* ctx = llama_init_from_model(model, ctx_params);
     if (!ctx) {
@@ -143,8 +144,8 @@ Java_com_example_gemma_ai_LlamaJNI_generateTokens(
 
     const char* prompt_cstr = env->GetStringUTFChars(prompt, nullptr);
     
-    // 1. Format prompt (Hardcoded for Gemma)
-    std::string formatted_prompt = std::string("<start_of_turn>user\n") + prompt_cstr + "<end_of_turn>\n<start_of_turn>model\n";
+    // 1. Format prompt (Hardcoded for Llama 3 Instruct)
+    std::string formatted_prompt = std::string("<|start_header_id|>user<|end_header_id|>\n\n") + prompt_cstr + "<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n";
     
     env->ReleaseStringUTFChars(prompt, prompt_cstr);
     LOGI("Formatted prompt: %s", formatted_prompt.c_str());
@@ -262,6 +263,8 @@ Java_com_example_gemma_ai_LlamaJNI_generateTokens(
                 piece_str.find("</|im_start|>") != std::string::npos ||
                 piece_str.find("<end_of_turn>") != std::string::npos ||
                 piece_str.find("<start_of_turn>") != std::string::npos ||
+                piece_str.find("<|eot_id|>") != std::string::npos ||
+                piece_str.find("<|end_header_id|>") != std::string::npos ||
                 piece_str.find("<|end|>") != std::string::npos ||
                 piece_str.find("</s>") != std::string::npos) {
                 LOGI("Found stop string in piece. Breaking.");

@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import java.security.MessageDigest
 import java.util.UUID
 
 class PdfProcessor(private val context: Context) {
@@ -22,6 +23,18 @@ class PdfProcessor(private val context: Context) {
         emit(IngestionState.Parsing(0f, "Initializing PDF reader..."))
         var document: PDDocument? = null
         try {
+            // Compute SHA-256 hash of the file for a stable document ID
+            val digest = MessageDigest.getInstance("SHA-256")
+            context.contentResolver.openInputStream(uri)?.use { stream ->
+                val buffer = ByteArray(8192)
+                var bytesRead: Int
+                while (stream.read(buffer).also { bytesRead = it } != -1) {
+                    digest.update(buffer, 0, bytesRead)
+                }
+            }
+            val hashBytes = digest.digest()
+            val documentId = "doc_" + hashBytes.joinToString("") { "%02x".format(it) }
+            
             val inputStream = context.contentResolver.openInputStream(uri)
             if (inputStream == null) {
                 emit(IngestionState.Error("Failed to open file."))
@@ -35,12 +48,8 @@ class PdfProcessor(private val context: Context) {
             val stripper = PDFTextStripper()
             
             var totalCharacters = 0
-            var firstPageSample = ""
-            var middlePageSample = ""
-            var lastPageSample = ""
             val chapters = mutableListOf<String>()
             
-            val documentId = UUID.randomUUID().toString()
             var currentChapter: String? = null
             
             // Regex to find things like "Chapter 1: The Beginning"
@@ -64,11 +73,6 @@ class PdfProcessor(private val context: Context) {
                         chapters.add(currentChapter)
                     }
 
-                    // Sample extraction
-                    if (i == 1) firstPageSample = text.take(200)
-                    if (i == pageCount / 2) middlePageSample = text.take(200)
-                    if (i == pageCount) lastPageSample = text.take(200)
-                    
                     chunks.add(
                         DocumentChunk(
                             chunkId = UUID.randomUUID().toString(),
@@ -84,6 +88,7 @@ class PdfProcessor(private val context: Context) {
             }
             
             emit(IngestionState.RawCompleted(
+                documentId = documentId,
                 chunks = chunks,
                 pageCount = pageCount,
                 totalCharacters = totalCharacters,

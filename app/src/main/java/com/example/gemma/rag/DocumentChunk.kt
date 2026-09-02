@@ -7,5 +7,6 @@ data class DocumentChunk(
     val pageNumber: Int? = null,
     val chapter: String? = null,
     val section: String? = null,
-    val metadata: Map<String, String> = emptyMap()
+    val metadata: Map<String, String> = emptyMap(),
+    val score: Float = 0.0f
 )

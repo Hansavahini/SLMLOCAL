@@ -22,8 +22,9 @@ android {
 
         externalNativeBuild {
             cmake {
-                abiFilters += listOf("x86_64", "arm64-v8a", "armeabi-v7a")
-                cppFlags += "-std=c++17"
+                abiFilters += listOf("x86_64", "arm64-v8a")
+                cppFlags += "-std=c++17 -O3 -ffast-math -fno-finite-math-only"
+                arguments += "-DCMAKE_BUILD_TYPE=Release"
             }
         }
     }

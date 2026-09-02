@@ -4,6 +4,8 @@ sealed class IngestionState {
     object Idle : IngestionState()
     data class Parsing(val progress: Float, val currentActivity: String) : IngestionState()
     data class Completed(
+        val documentId: String,
+        val documentName: String,
         val pageCount: Int,
         val chunkCount: Int,
         val totalCharacters: Int,
@@ -19,6 +21,7 @@ sealed class IngestionState {
     ) : IngestionState()
     
     data class RawCompleted(
+        val documentId: String,
         val chunks: List<com.example.gemma.rag.DocumentChunk>,
         val pageCount: Int,
         val totalCharacters: Int,

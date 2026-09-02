@@ -4,7 +4,7 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-08-29T10:27:40.193148500Z">
+        <DropdownSelection timestamp="2026-08-31T09:09:44.493427200Z">
           <Target type="DEFAULT_BOOT">
             <handle>
               <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\hansa\.android\avd\SLMLOCAL_8GB_API_34.avd" />

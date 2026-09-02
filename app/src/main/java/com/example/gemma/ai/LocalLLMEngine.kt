@@ -45,7 +45,10 @@ class LocalLLMEngine : LLMEngine {
         return@withContext _state
     }
 
-    override fun isReady(): Boolean = _state is EngineState.Ready
+    override fun isReady(): Boolean {
+        android.util.Log.i("LocalLLMEngine", "isReady() called. _state is: $_state, contextPtr: $contextPtr")
+        return _state is EngineState.Ready
+    }
 
     override fun generateStream(prompt: String): Flow<String> = kotlinx.coroutines.flow.callbackFlow {
         if (_state !is EngineState.Ready) {

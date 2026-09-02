@@ -42,6 +42,17 @@ fun ChatScreen(viewModel: ChatViewModel, ingestionViewModel: IngestionViewModel)
     val messages by viewModel.messages.collectAsState()
     val engineState by viewModel.engineState.collectAsState()
     val ingestionState by ingestionViewModel.ingestionState.collectAsState()
+    val isImportingModel by viewModel.isImportingModel.collectAsState()
+    val activeDocumentName by viewModel.activeDocumentName.collectAsState()
+
+    val modelLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = { uri ->
+            if (uri != null) {
+                viewModel.importModel(uri)
+            }
+        }
+    )
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -84,6 +95,9 @@ fun ChatScreen(viewModel: ChatViewModel, ingestionViewModel: IngestionViewModel)
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 ),
                 actions = {
+                    TextButton(onClick = { modelLauncher.launch(arrayOf("*/*")) }) {
+                        Text("Import Model")
+                    }
                     IconButton(onClick = { launcher.launch(arrayOf("application/pdf")) }) {
                         Icon(imageVector = Icons.Default.Add, contentDescription = "Import PDF")
                     }
@@ -98,6 +112,33 @@ fun ChatScreen(viewModel: ChatViewModel, ingestionViewModel: IngestionViewModel)
                 .imePadding()
                 .background(MaterialTheme.colorScheme.background)
         ) {
+            if (activeDocumentName != null) {
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = "Active Document: $activeDocumentName",
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(8.dp),
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
+            }
+            if (isImportingModel) {
+                AlertDialog(
+                    onDismissRequest = { },
+                    title = { Text("Importing Model") },
+                    text = {
+                        Column {
+                            CircularProgressIndicator()
+                            Spacer(Modifier.height(8.dp))
+                            Text("Copying model file, please wait. This can take a minute...")
+                        }
+                    },
+                    confirmButton = { }
+                )
+            }
             
             if (ingestionState !is IngestionState.Idle) {
                 AlertDialog(
@@ -138,7 +179,13 @@ fun ChatScreen(viewModel: ChatViewModel, ingestionViewModel: IngestionViewModel)
                     },
                     confirmButton = {
                         if (ingestionState is IngestionState.Completed || ingestionState is IngestionState.Error) {
-                            TextButton(onClick = { ingestionViewModel.resetState() }) {
+                            TextButton(onClick = { 
+                                val state = ingestionState
+                                if (state is IngestionState.Completed) {
+                                    viewModel.setActiveDocument(state.documentId, state.documentName)
+                                }
+                                ingestionViewModel.resetState() 
+                            }) {
                                 Text("Close")
                             }
                         }
