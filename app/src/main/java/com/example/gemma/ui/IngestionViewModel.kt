@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.gemma.rag.RagDependencies
 import com.example.gemma.rag.ingestion.IngestionState
 import com.example.gemma.rag.ingestion.PdfProcessor
+import com.example.gemma.learning.LearningRepository
+import com.example.gemma.learning.db.LearningDatabase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,6 +20,10 @@ class IngestionViewModel(application: Application) : AndroidViewModel(applicatio
 
     private val pdfProcessor = PdfProcessor(application)
     private val documentChunker = com.example.gemma.rag.chunking.DocumentChunker()
+    
+    private val learningRepository = LearningRepository(
+        LearningDatabase.getDatabase(application)
+    )
 
     private val _ingestionState = MutableStateFlow<IngestionState>(IngestionState.Idle)
     val ingestionState: StateFlow<IngestionState> = _ingestionState.asStateFlow()
@@ -78,6 +84,19 @@ class IngestionViewModel(application: Application) : AndroidViewModel(applicatio
                     val avgSize = if (sizes.isNotEmpty()) sizes.average().toInt() else 0
                     val minSize = sizes.minOrNull() ?: 0
                     val maxSize = sizes.maxOrNull() ?: 0
+                    
+                    // Trigger learning pipeline in parallel, completely independent of RAG
+                    try {
+                        _ingestionState.value = IngestionState.Parsing(1f, "Processing book structure for learning...")
+                        learningRepository.processIngestedDocument(
+                            documentId = state.documentId,
+                            documentName = documentName,
+                            pageCount = state.pageCount,
+                            chunks = state.chunks
+                        )
+                    } catch (e: Exception) {
+                        Log.e("RAG_TEST", "Learning ingestion failed: ${e.message}", e)
+                    }
                     
                     _ingestionState.value = IngestionState.Completed(
                         documentId = state.documentId,

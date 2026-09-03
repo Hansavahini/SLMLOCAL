@@ -23,7 +23,7 @@ import java.io.File
 
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val engine: LLMEngine = LocalLLMEngine()
+    val engine: LLMEngine = LocalLLMEngine()
     
     private val database = ChatDatabase.getDatabase(application)
     private val repository = ChatRepository(database.conversationDao(), database.messageDao())

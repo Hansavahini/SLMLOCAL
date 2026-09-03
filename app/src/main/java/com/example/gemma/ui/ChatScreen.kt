@@ -44,7 +44,11 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatScreen(viewModel: ChatViewModel, ingestionViewModel: IngestionViewModel) {
+fun ChatScreen(
+    viewModel: ChatViewModel, 
+    ingestionViewModel: IngestionViewModel,
+    onNavigateToBooks: () -> Unit = {}
+) {
     var inputText by remember { mutableStateOf("") }
     val messages by viewModel.messages.collectAsState()
     val engineState by viewModel.engineState.collectAsState()
@@ -92,6 +96,17 @@ fun ChatScreen(viewModel: ChatViewModel, ingestionViewModel: IngestionViewModel)
                     Icon(Icons.Default.Add, contentDescription = "New Chat")
                     Spacer(Modifier.width(8.dp))
                     Text("New Chat")
+                }
+                Button(
+                    onClick = {
+                        onNavigateToBooks()
+                        scope.launch { drawerState.close() }
+                    },
+                    modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Menu, contentDescription = "My Books")
+                    Spacer(Modifier.width(8.dp))
+                    Text("My Books")
                 }
                 Divider()
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
